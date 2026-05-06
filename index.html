@@ -922,13 +922,27 @@ function groupByY(items, tol = 4) {
   return rows;
 }
 
-function nearestCol(x, colX) {
+// Numbers in Empower tables are right-justified, so they appear to the RIGHT
+// of their column header. A pure "nearest header" approach mis-assigns them to
+// the NEXT column's header. Strategy:
+//   1. If the item is within NEAR px of any header → use nearest (left-aligned text).
+//   2. Otherwise → use the header with the largest x that is still ≤ item.x (floor).
+//   3. Fallback to nearest when no header is to the left of the item.
+function assignCol(x, colX) {
+  const NEAR = 15;
   let best = null, bestDist = Infinity;
   for (const [name, cx] of Object.entries(colX)) {
     const d = Math.abs(x - cx);
     if (d < bestDist) { bestDist = d; best = name; }
   }
-  return best;
+  if (bestDist <= NEAR) return best;
+
+  // Floor: largest header x ≤ item x
+  let floorCol = null, floorX = -Infinity;
+  for (const [name, cx] of Object.entries(colX)) {
+    if (cx <= x && cx > floorX) { floorX = cx; floorCol = name; }
+  }
+  return floorCol ?? best;
 }
 
 function parseSampleName(name) {
@@ -991,7 +1005,7 @@ async function extractFromPDF(file) {
 
       const cell = {};
       for (const it of dataItems) {
-        const col = nearestCol(it.x, colX);
+        const col = assignCol(it.x, colX);
         if (col) cell[col] = (cell[col] || '') + it.str;
       }
 
