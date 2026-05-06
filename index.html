@@ -1,165 +1,762 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EmpowerQuant — Extractor HPLC</title>
+
+  <!-- Google Fonts: Roboto + Roboto Mono + Material Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+  <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ============================================================
+       EmpowerQuant — style  (Material Design 3, teal palette)
+       ============================================================ */
+
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+    :root {
+      /* Teal primary */
+      --md-primary:              #0d9488;
+      --md-on-primary:           #ffffff;
+      --md-primary-container:    #ccfbf1;
+      --md-on-primary-container: #042f2e;
+      --md-primary-dark:         #0f766e;
+      --md-primary-light:        #f0fdfa;
+
+      --md-secondary:            #0891b2;
+      --md-secondary-container:  #e0f2fe;
+
+      --md-tertiary:             #0b8043;
+      --md-tertiary-container:   #c8f5d6;
+
+      --md-error:                #b3261e;
+      --md-error-container:      #f9dedc;
+      --md-success:              #1e8e3e;
+
+      /* Surfaces */
+      --md-surface:              #ffffff;
+      --md-surface-1:            #f4fdfb;
+      --md-surface-2:            #e9f9f6;
+      --md-surface-variant:      #e7f5f2;
+      --md-on-surface-variant:   #44464f;
+      --md-background:           #f6fffe;
+      --md-outline:              #79747e;
+      --md-outline-variant:      #c4dedd;
+
+      --md-border:               #cde8e5;
+      --md-text:                 #1c1b1f;
+      --md-text-secondary:       #49454f;
+
+      /* Shadows */
+      --md-shadow-1: 0 1px 2px rgba(0,0,0,.10), 0 1px 3px 1px rgba(0,0,0,.07);
+      --md-shadow-2: 0 1px 4px rgba(0,0,0,.12), 0 2px 8px 2px rgba(0,0,0,.09);
+      --md-shadow-3: 0 4px 8px rgba(0,0,0,.12), 0 6px 16px 4px rgba(0,0,0,.08);
+      --md-shadow-fab: 0 3px 5px -1px rgba(0,0,0,.2), 0 6px 10px rgba(0,0,0,.14), 0 1px 18px rgba(0,0,0,.12);
+
+      /* Shape scale */
+      --md-shape-xs:   4px;
+      --md-shape-sm:   8px;
+      --md-shape-md:   12px;
+      --md-shape-lg:   16px;
+      --md-shape-xl:   28px;
+      --md-shape-full: 9999px;
+
+      /* Layout */
+      --hc-header-height: 88px;
+      --hc-footer-height: 56px;
+      --hc-shadow-sm: 0 1px 4px rgba(60,64,67,.16);
+      --hc-shadow-md: 0 4px 14px rgba(60,64,67,.18);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
 
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #0f1117;
-      color: #e2e8f0;
+      background: var(--md-background);
+      color: var(--md-text);
+      font-family: 'Roboto', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
     }
 
-    header {
-      background: #1a1f2e;
-      border-bottom: 1px solid #2d3748;
-      padding: 1.25rem 2rem;
+    /* ── Header ── */
+    .hc-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--hc-header-height);
+      z-index: 1001;
+      background: rgba(255,255,255,0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--md-border);
+      box-shadow: 0 1px 8px rgba(60,64,67,.08);
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 1rem;
+      padding: 0 1.25rem;
+      overflow: hidden;
     }
-    header h1 { font-size: 1.4rem; font-weight: 700; color: #63b3ed; letter-spacing: -0.5px; }
-    header p  { font-size: 0.82rem; color: #718096; margin-top: 0.1rem; }
 
-    main { max-width: 920px; margin: 2rem auto; padding: 0 1.5rem 3rem; }
+    .hc-header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
+
+    .hc-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+      border: 1px solid #99f6e4;
+      box-shadow: var(--hc-shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .hc-logo-glyph {
+      color: var(--md-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hc-header-text {
+      min-width: 0;
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .hc-title-line {
+      display: flex;
+      align-items: baseline;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .hc-header h1 {
+      font-size: 1.08rem;
+      font-weight: 700;
+      color: var(--md-text);
+      margin: 0;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .hc-tagline {
+      font-size: 0.83rem;
+      color: var(--md-text-secondary);
+      margin: 0;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hc-header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .hc-suite-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.55rem 0.85rem;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+      border: 1px solid #99f6e4;
+      box-shadow: var(--hc-shadow-sm);
+      text-decoration: none !important;
+      transition: transform 110ms ease, box-shadow 130ms ease, background 130ms ease;
+    }
+    .hc-suite-pill:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--hc-shadow-md);
+      background: linear-gradient(135deg, #e4faf5 0%, #b2f5ea 100%);
+    }
+
+    .hc-suite-label {
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--md-primary);
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    /* ── Main ── */
+    .md-main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: calc(var(--hc-header-height) + 28px) 24px calc(var(--hc-footer-height) + 28px);
+    }
+
+    /* ── Cards ── */
+    .md-card {
+      background: var(--md-surface);
+      border-radius: var(--md-shape-lg);
+      box-shadow: var(--md-shadow-1);
+      padding: 24px;
+      margin-top: 18px;
+      border: 1px solid var(--md-outline-variant);
+      transition: box-shadow 200ms ease;
+    }
+    .md-card:first-child { margin-top: 0; }
+    .md-card:hover { box-shadow: var(--md-shadow-2); }
+
+    .md-card-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--md-text);
+      margin: 0 0 4px;
+      letter-spacing: 0.01em;
+    }
+    .md-card-subtitle {
+      font-size: 13px;
+      color: var(--md-text-secondary);
+      margin: 0 0 20px;
+      line-height: 1.5;
+    }
 
     /* ── Drop zone ── */
-    .drop-zone {
-      border: 2px dashed #4a5568;
-      border-radius: 12px;
-      padding: 2.5rem 2rem;
+    .md-drop-zone {
+      border: 2px dashed var(--md-outline-variant);
+      border-radius: var(--md-shape-lg);
+      padding: 48px 24px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      background: #1a1f2e;
+      transition: border-color .25s cubic-bezier(.4,0,.2,1),
+                  background .25s cubic-bezier(.4,0,.2,1);
+      background: var(--md-surface-1);
       position: relative;
+      overflow: hidden;
     }
-    .drop-zone:hover, .drop-zone.drag-over {
-      border-color: #63b3ed;
-      background: #1b2540;
+    .md-drop-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(13,148,136,0.05) 0%, transparent 70%);
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      opacity: 0;
     }
-    .drop-zone svg { width: 44px; height: 44px; color: #4a5568; margin-bottom: 0.75rem; }
-    .drop-zone strong { display: block; color: #a0aec0; font-size: 1.05rem; }
-    .drop-zone p { color: #718096; font-size: 0.82rem; margin-top: 0.4rem; }
+    .md-drop-zone:hover::before,
+    .md-drop-zone.drag-over::before { opacity: 1; }
+
+    .md-drop-zone:hover, .md-drop-zone.drag-over {
+      border-color: var(--md-primary);
+      background: var(--md-primary-light);
+    }
+
+    .md-upload-icon {
+      color: var(--md-primary);
+      opacity: 0.75;
+      margin-bottom: 14px;
+      transition: transform 0.25s ease, opacity 0.2s ease;
+    }
+    .md-drop-zone:hover .md-upload-icon,
+    .md-drop-zone.drag-over .md-upload-icon {
+      transform: translateY(-4px) scale(1.08);
+      opacity: 1;
+    }
+
+    .md-drop-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--md-text);
+      margin: 0 0 5px;
+    }
+    .md-drop-sub {
+      font-size: 12.5px;
+      color: var(--md-text-secondary);
+      margin: 0;
+    }
+
     #file-input { display: none; }
 
     /* ── File chips ── */
-    .file-list { margin-top: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 14px;
+    }
     .file-chip {
-      background: #2d3748; border-radius: 20px; padding: 0.3rem 0.85rem;
-      font-size: 0.78rem; color: #a0aec0; display: flex; align-items: center; gap: 0.35rem;
-      transition: background 0.2s, color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-full);
+      padding: 4px 14px;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--md-text-secondary);
+      transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
     }
-    .file-chip::before { content: '○'; font-size: 0.7rem; }
-    .file-chip.done  { background: #1a3a2a; color: #68d391; }
-    .file-chip.done::before  { content: '●'; }
-    .file-chip.error { background: #3a1a1a; color: #fc8181; }
-    .file-chip.error::before { content: '✕'; }
-
-    /* ── Actions ── */
-    .actions { margin-top: 1.25rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
-
-    button {
-      padding: 0.6rem 1.4rem; border: none; border-radius: 8px;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s, background 0.15s;
+    .file-chip::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--md-outline-variant);
+      flex-shrink: 0;
+      transition: background 150ms ease;
     }
-    #btn-process  { background: #4299e1; color: #fff; }
-    #btn-process:hover:not(:disabled) { background: #3182ce; }
-    #btn-process:disabled { opacity: 0.4; cursor: not-allowed; }
-    #btn-download { background: #48bb78; color: #fff; }
-    #btn-download:hover { background: #38a169; }
-    #btn-clear    { background: #2d3748; color: #a0aec0; }
-    #btn-clear:hover { background: #4a5568; }
+    .file-chip.done { background: var(--md-tertiary-container); color: var(--md-tertiary); border-color: #a3e9b4; }
+    .file-chip.done::before { background: var(--md-tertiary); }
+    .file-chip.error { background: var(--md-error-container); color: var(--md-error); border-color: #f5aea9; }
+    .file-chip.error::before { background: var(--md-error); }
 
-    /* ── Log ── */
-    .log {
-      margin-top: 1.25rem; background: #13161f; border: 1px solid #2d3748;
-      border-radius: 8px; padding: 0.85rem 1rem;
-      font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 0.78rem;
-      color: #a0aec0; max-height: 180px; overflow-y: auto;
+    .clear-link {
+      font-size: 12px;
+      color: var(--md-text-secondary);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--md-shape-sm);
+      transition: background 150ms ease, color 150ms ease;
+      margin-top: 2px;
     }
-    .log .line { line-height: 1.6; }
-    .log .ok   { color: #68d391; }
-    .log .err  { color: #fc8181; }
-    .log .info { color: #63b3ed; }
-    .log .warn { color: #f6e05e; }
+    .clear-link:hover { background: var(--md-surface-variant); color: var(--md-text); }
 
-    /* ── Summary cards ── */
-    .summary { margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap; }
-    .stat {
-      background: #1a1f2e; border: 1px solid #2d3748; border-radius: 10px;
-      padding: 0.75rem 1.1rem; min-width: 130px;
+    /* ── Analyze button row ── */
+    .analyze-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding-top: 20px;
     }
-    .stat .val { font-size: 1.6rem; font-weight: 700; color: #63b3ed; }
-    .stat .lbl { font-size: 0.72rem; color: #718096; margin-top: 0.15rem; }
+
+    .btn-analyze {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 36px;
+      background: var(--md-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--md-shape-full);
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Roboto', sans-serif;
+      cursor: pointer;
+      transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+      box-shadow: var(--md-shadow-1);
+      letter-spacing: 0.01em;
+    }
+    .btn-analyze:hover:not(:disabled) {
+      background: var(--md-primary-dark);
+      box-shadow: var(--md-shadow-2);
+      transform: translateY(-1px);
+    }
+    .btn-analyze:active:not(:disabled) { transform: translateY(0); box-shadow: var(--md-shadow-1); }
+    .btn-analyze:disabled {
+      background: var(--md-outline-variant);
+      color: var(--md-text-secondary);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .analyze-hint {
+      font-size: 12px;
+      color: var(--md-text-secondary);
+      margin: 0;
+    }
+
+    /* ── Log card ── */
+    #log {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.7;
+      background: var(--md-surface-1);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-sm);
+      padding: 12px 14px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #log .line { line-height: 1.7; }
+    #log .ok   { color: var(--md-tertiary); }
+    #log .err  { color: var(--md-error); }
+    #log .info { color: var(--md-primary); }
+    #log .warn { color: #b45309; }
+
+    /* ── Summary stat cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+    @media (max-width: 640px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .info-stat-card {
+      background: var(--md-surface);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-lg);
+      padding: 18px 14px 16px;
+      text-align: center;
+      box-shadow: var(--md-shadow-1);
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow 200ms cubic-bezier(.4,0,.2,1), transform 200ms cubic-bezier(.4,0,.2,1);
+    }
+    .info-stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--md-primary);
+      border-radius: var(--md-shape-lg) var(--md-shape-lg) 0 0;
+    }
+    .info-stat-card:hover { box-shadow: var(--md-shadow-2); transform: translateY(-2px); }
+
+    .info-stat-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--md-primary);
+      line-height: 1.05;
+      font-family: 'Roboto', sans-serif;
+      letter-spacing: -0.03em;
+      margin-top: 4px;
+    }
+    .info-stat-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--md-on-surface-variant);
+      margin-top: 6px;
+    }
+    .info-stat-detail {
+      font-size: 11px;
+      color: var(--md-text-secondary);
+      margin-top: 5px;
+      line-height: 1.4;
+    }
 
     /* ── Results table ── */
-    .results { margin-top: 1.25rem; }
-    .results h2 { font-size: 0.95rem; color: #a0aec0; margin-bottom: 0.6rem; }
-
-    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #2d3748; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--md-shape-sm);
+      border: 1px solid var(--md-outline-variant);
+      margin-top: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
     th {
-      background: #2d3748; color: #a0aec0; padding: 0.55rem 0.9rem;
-      text-align: left; font-weight: 600; white-space: nowrap;
+      background: var(--md-surface-1);
+      color: var(--md-on-surface-variant);
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--md-outline-variant);
+      white-space: nowrap;
     }
     td {
-      background: #1a1f2e; color: #e2e8f0;
-      padding: 0.45rem 0.9rem; border-top: 1px solid #1e2433;
+      padding: 9px 14px;
+      border-top: 1px solid var(--md-surface-variant);
+      color: var(--md-text);
     }
-    tr:hover td { background: #1b2540; }
-    .zero { color: #4a5568; }
-    .mono { font-family: monospace; font-size: 0.78rem; color: #718096; }
+    tr:hover td { background: var(--md-surface-1); }
+    .td-zero { color: var(--md-on-surface-variant); font-style: italic; }
+    .td-mono { font-family: 'Roboto Mono', monospace; font-size: 11.5px; color: var(--md-text-secondary); }
+    .td-clona { font-weight: 700; color: var(--md-primary); }
 
     .truncate-note {
-      text-align: center; padding: 0.6rem; color: #718096; font-size: 0.8rem;
-      background: #1a1f2e; border-top: 1px solid #2d3748;
+      text-align: center;
+      padding: 10px;
+      color: var(--md-text-secondary);
+      font-size: 12px;
+      background: var(--md-surface-1);
+      border-top: 1px solid var(--md-outline-variant);
+    }
+
+    /* ── Action bar ── */
+    .md-action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      padding: 18px 22px;
+      background: var(--md-surface-2);
+      border-radius: var(--md-shape-lg);
+      border: 1px solid var(--md-outline-variant);
+      box-shadow: var(--md-shadow-1);
+      margin-top: 18px;
+    }
+    .md-action-hint {
+      font-size: 12px;
+      color: var(--md-text-secondary);
+      margin-left: auto;
+    }
+
+    /* Extended FAB */
+    .btn-md-fab {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border: none;
+      border-radius: var(--md-shape-lg);
+      padding: 12px 24px;
+      font-family: 'Roboto', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      box-shadow: var(--md-shadow-2);
+      transition: box-shadow 200ms ease, transform 150ms ease, filter 150ms ease;
+    }
+    .btn-md-fab:hover {
+      box-shadow: var(--md-shadow-3);
+      transform: translateY(-1px);
+      filter: brightness(0.96);
+    }
+
+    /* Outlined button */
+    .btn-md-outlined {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--md-primary);
+      border: 1px solid var(--md-outline);
+      border-radius: var(--md-shape-full);
+      padding: 9px 22px;
+      font-family: 'Roboto', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+    .btn-md-outlined:hover { background: rgba(13,148,136,.06); border-color: var(--md-primary); }
+
+    /* ── Fade-in for results ── */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #results-section > * { animation: fadeInUp 0.3s ease forwards; }
+    #results-section > *:nth-child(1) { animation-delay: 0.04s; }
+    #results-section > *:nth-child(2) { animation-delay: 0.10s; }
+    #results-section > *:nth-child(3) { animation-delay: 0.16s; }
+
+    /* ── Footer ── */
+    .hc-footer {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: var(--hc-footer-height);
+      background: rgba(248,255,254,0.96);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-top: 1px solid #d4eeec;
+      box-shadow: 0 -1px 8px rgba(60,64,67,0.07);
+      z-index: 9999;
+    }
+
+    .hc-footer-inner {
+      height: 100%;
+      padding: 0 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    .hc-footer-suite { display: flex; flex-direction: column; gap: 1px; }
+
+    .hc-footer-name {
+      font-size: 0.83rem;
+      font-weight: 700;
+      color: var(--md-primary);
+      white-space: nowrap;
+    }
+
+    .hc-footer-slogan {
+      font-size: 0.67rem;
+      color: #5f6368;
+      white-space: nowrap;
+      font-style: italic;
+    }
+
+    .hc-footer-author {
+      font-size: 0.78rem;
+      color: #5f6368;
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    .hc-footer-github {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0.44rem 1.05rem;
+      border-radius: 999px;
+      background: #1e2330;
+      color: #ffffff !important;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-decoration: none !important;
+      transition: background 130ms ease, transform 110ms ease, box-shadow 130ms ease;
+      box-shadow: 0 1px 4px rgba(0,0,0,.20);
+      flex-shrink: 0;
+    }
+    .hc-footer-github:hover {
+      background: #2d3348;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 9px rgba(0,0,0,.25);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      :root { --hc-header-height: 80px; }
+      .hc-header { padding: 0 1rem; }
+      .hc-logo { width: 40px; height: 40px; }
+      .hc-header h1 { font-size: 0.98rem; }
+      .hc-tagline { font-size: 0.76rem; }
+    }
+
+    @media (max-width: 680px) {
+      :root { --hc-header-height: 94px; --hc-footer-height: 76px; }
+      .hc-header { align-items: center; padding: 0 0.8rem; }
+      .hc-title-line { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
+      .hc-header h1 { font-size: 0.9rem; }
+      .hc-tagline { font-size: 0.72rem; white-space: normal; }
+      .md-main { padding: calc(var(--hc-header-height) + 16px) 14px calc(var(--hc-footer-height) + 16px); }
+      .md-card { padding: 16px; }
+      .md-action-bar { padding: 14px 16px; }
+      .md-action-hint { margin-left: 0; }
+      .hc-footer-inner { padding: 0.45rem 0.9rem; flex-wrap: wrap; justify-content: flex-start; gap: 0.35rem 1rem; }
+      .hc-footer-author { margin-left: 0; }
+      .hc-footer-github { margin-left: auto; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#63b3ed" stroke-width="2">
-    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-  </svg>
-  <div>
-    <h1>EmpowerQuant</h1>
-    <p>Extractor de concentraciones HPLC · Waters Empower → CSV</p>
+<!-- ── Header ─────────────────────────────────────────────────────── -->
+<header class="hc-header">
+  <div class="hc-header-brand">
+    <div class="hc-logo" aria-hidden="true">
+      <span class="hc-logo-glyph">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="2 19 6 19 8 11 11 7 14 11 16 19 20 19"/>
+        </svg>
+      </span>
+    </div>
+    <div class="hc-header-text">
+      <div class="hc-title-line">
+        <h1>EmpowerQuant</h1>
+        <p class="hc-tagline">Extractor de concentraciones HPLC · Waters Empower → CSV</p>
+      </div>
+    </div>
+  </div>
+  <div class="hc-header-right">
+    <a class="hc-suite-pill" href="https://www.hostcell.app" target="_blank" rel="noopener noreferrer">
+      <span class="hc-suite-label">HostCell Lab Suite</span>
+    </a>
   </div>
 </header>
 
-<main>
-  <div class="drop-zone" id="drop-zone">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-      <path stroke-linecap="round" stroke-linejoin="round"
-        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
-    </svg>
-    <strong>Arrastra los reportes PDF aquí</strong>
-    <p>o haz clic para seleccionar archivos</p>
-    <p style="margin-top:0.3rem">Reportes Waters Empower (.pdf) — múltiples archivos aceptados</p>
-    <input type="file" id="file-input" multiple accept=".pdf">
+<!-- ── Main ───────────────────────────────────────────────────────── -->
+<main class="md-main">
+
+  <!-- Upload card -->
+  <div class="md-card">
+    <h2 class="md-card-title">Carga tus reportes PDF</h2>
+    <p class="md-card-subtitle">
+      Arrastra uno o más reportes de Waters Empower y haz clic en <strong>Procesar</strong>.
+      Las concentraciones vacías se registran como <strong>0.0</strong>.
+    </p>
+
+    <div id="drop-zone" class="md-drop-zone">
+      <div class="md-upload-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+      </div>
+      <p class="md-drop-title">Arrastra los PDF aquí</p>
+      <p class="md-drop-sub">o haz clic para seleccionar archivos · múltiples PDFs aceptados</p>
+      <input type="file" id="file-input" multiple accept=".pdf" />
+    </div>
+
+    <!-- Chips de archivos -->
+    <div id="file-list" class="file-list"></div>
+
+    <!-- Botón procesar -->
+    <div class="analyze-row">
+      <button id="btn-process" class="btn-analyze" disabled>
+        <span class="material-icons" style="font-size:20px">analytics</span>
+        Procesar PDFs
+      </button>
+      <p id="process-hint" class="analyze-hint">Selecciona al menos un PDF para continuar.</p>
+    </div>
   </div>
 
-  <div class="file-list" id="file-list"></div>
-
-  <div class="actions">
-    <button id="btn-process" disabled>Procesar PDFs</button>
-    <button id="btn-download" style="display:none">⬇ Descargar CSV</button>
-    <button id="btn-clear">Limpiar</button>
+  <!-- Log (aparece al procesar) -->
+  <div class="md-card" id="log-card" style="display:none">
+    <h2 class="md-card-title" style="margin-bottom:12px">Procesamiento</h2>
+    <div id="log"></div>
   </div>
 
-  <div class="log" id="log" style="display:none"></div>
-
+  <!-- Resultados -->
   <div id="results-section" style="display:none">
-    <div class="summary" id="summary"></div>
-    <div class="results">
-      <h2>Vista previa — <span id="result-count">0</span> muestras (ordenadas por Clona · Réplica · Tiempo)</h2>
+
+    <!-- Stats -->
+    <div class="md-card">
+      <h2 class="md-card-title">Resumen del dataset</h2>
+      <div class="summary-grid" id="summary"></div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="md-card">
+      <h2 class="md-card-title">
+        Vista previa —
+        <span id="result-count">0</span> muestras
+      </h2>
+      <p class="md-card-subtitle" style="margin-bottom:12px">
+        Ordenadas por Clona · Réplica · Tiempo
+      </p>
       <div class="table-wrap">
         <table>
           <thead>
@@ -176,28 +773,69 @@
         <div class="truncate-note" id="truncate-note" style="display:none"></div>
       </div>
     </div>
-  </div>
+
+    <!-- Action bar -->
+    <div class="md-action-bar">
+      <button id="btn-download" class="btn-md-fab">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Descargar CSV
+      </button>
+      <button id="btn-clear" class="btn-md-outlined">
+        Nueva sesión
+      </button>
+      <span class="md-action-hint">El CSV contiene todas las muestras ordenadas · concentraciones vacías → 0.0</span>
+    </div>
+
+  </div><!-- /results-section -->
+
 </main>
+
+<!-- ── Footer ─────────────────────────────────────────────────────── -->
+<footer class="hc-footer">
+  <div class="hc-footer-inner">
+    <div class="hc-footer-suite">
+      <span class="hc-footer-name">HostCell Lab Suite</span>
+      <span class="hc-footer-slogan">Practical tools for high-performance biotechnology</span>
+    </div>
+    <span class="hc-footer-author">© Emiliano Balderas Ramírez</span>
+    <a href="https://github.com/ebalderasr/Empower-Cleaner" class="hc-footer-github"
+       target="_blank" rel="noopener noreferrer">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
+           viewBox="0 0 24 24" fill="currentColor" aria-label="GitHub">
+        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z"/>
+      </svg>
+      Ver en GitHub
+    </a>
+  </div>
+</footer>
 
 <script>
 'use strict';
 
-// ── PDF.js worker ────────────────────────────────────────────────────────────
+// ── PDF.js setup ──────────────────────────────────────────────────────────────
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 let selectedFiles = [];
 let processedRecords = [];
 
-// ── DOM refs ─────────────────────────────────────────────────────────────────
+// ── DOM refs ──────────────────────────────────────────────────────────────────
 const dropZone      = document.getElementById('drop-zone');
 const fileInput     = document.getElementById('file-input');
 const fileListEl    = document.getElementById('file-list');
 const btnProcess    = document.getElementById('btn-process');
 const btnDownload   = document.getElementById('btn-download');
 const btnClear      = document.getElementById('btn-clear');
+const logCard       = document.getElementById('log-card');
 const logEl         = document.getElementById('log');
+const processHint   = document.getElementById('process-hint');
 const resultsSection= document.getElementById('results-section');
 const summaryEl     = document.getElementById('summary');
 const resultBody    = document.getElementById('result-body');
@@ -206,7 +844,7 @@ const truncateNote  = document.getElementById('truncate-note');
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 function log(msg, type = 'info') {
-  logEl.style.display = 'block';
+  logCard.style.display = '';
   const div = document.createElement('div');
   div.className = `line ${type}`;
   div.textContent = msg;
@@ -216,15 +854,12 @@ function log(msg, type = 'info') {
 
 // ── File management ───────────────────────────────────────────────────────────
 function addFiles(files) {
-  let added = 0;
   for (const f of files) {
     if (!f.name.toLowerCase().endsWith('.pdf')) continue;
     if (selectedFiles.some(e => e.name === f.name && e.size === f.size)) continue;
     selectedFiles.push(f);
-    added++;
   }
   renderFileChips();
-  return added;
 }
 
 function renderFileChips() {
@@ -237,6 +872,9 @@ function renderFileChips() {
     fileListEl.appendChild(chip);
   }
   btnProcess.disabled = selectedFiles.length === 0;
+  processHint.textContent = selectedFiles.length === 0
+    ? 'Selecciona al menos un PDF para continuar.'
+    : `${selectedFiles.length} archivo${selectedFiles.length > 1 ? 's' : ''} listo${selectedFiles.length > 1 ? 's' : ''} para procesar.`;
 }
 
 function setChipState(fname, state) {
@@ -244,10 +882,10 @@ function setChipState(fname, state) {
   if (chip) chip.className = `file-chip ${state}`;
 }
 
-// ── Drag & drop ───────────────────────────────────────────────────────────────
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
 dropZone.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => { addFiles(e.target.files); fileInput.value = ''; });
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
@@ -261,41 +899,29 @@ btnClear.addEventListener('click', () => {
   processedRecords = [];
   fileListEl.innerHTML = '';
   logEl.innerHTML = '';
-  logEl.style.display = 'none';
+  logCard.style.display = 'none';
   resultsSection.style.display = 'none';
-  btnDownload.style.display = 'none';
   btnProcess.disabled = true;
   fileInput.value = '';
+  processHint.textContent = 'Selecciona al menos un PDF para continuar.';
 });
 
-// ── PDF parsing ───────────────────────────────────────────────────────────────
+// ── PDF Parsing ───────────────────────────────────────────────────────────────
 
-/**
- * Groups text items by Y coordinate (±tol units).
- * Returns rows sorted top→bottom, items sorted left→right within each row.
- */
 function groupByY(items, tol = 4) {
   const rows = [];
   for (const item of items) {
     let matched = false;
     for (const row of rows) {
-      if (Math.abs(row.y - item.y) <= tol) {
-        row.items.push(item);
-        matched = true;
-        break;
-      }
+      if (Math.abs(row.y - item.y) <= tol) { row.items.push(item); matched = true; break; }
     }
     if (!matched) rows.push({ y: item.y, items: [item] });
   }
-  // PDF Y=0 is at bottom; descending = top-to-bottom reading order
   rows.sort((a, b) => b.y - a.y);
   for (const row of rows) row.items.sort((a, b) => a.x - b.x);
   return rows;
 }
 
-/**
- * Returns the column name (key of colX) whose X is closest to x.
- */
 function nearestCol(x, colX) {
   let best = null, bestDist = Infinity;
   for (const [name, cx] of Object.entries(colX)) {
@@ -305,19 +931,10 @@ function nearestCol(x, colX) {
   return best;
 }
 
-/**
- * Parses a Waters Empower SampleName string.
- * Expected pattern: YYYYMMDD[_ ][Clona][_ ][Replica][_ ]T[space?][N][...suffix]
- * Returns { clona, replica, tiempo, suffix } or null.
- */
 function parseSampleName(name) {
-  // Allow underscore or space as separator; T may have space before digit
   const m = name.match(/\d{8}[_\s]([A-Za-z]+)[_\s](\d+)[_\s]T\s*(\d+)(.*)/);
   if (!m) return null;
-
-  // Keep any suffix after T[N] for re-injection tracking (e.g. "_1")
   const rawSuffix = m[4].trim().replace(/^[_\s]+/, '').trim();
-
   return {
     clona  : m[1].toUpperCase(),
     replica: parseInt(m[2], 10),
@@ -326,10 +943,6 @@ function parseSampleName(name) {
   };
 }
 
-/**
- * Extracts sample records from a single PDF file using PDF.js.
- * Uses dynamic column-header positions so layout variations don't break parsing.
- */
 async function extractFromPDF(file) {
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
@@ -339,17 +952,14 @@ async function extractFromPDF(file) {
     const page = await pdf.getPage(pageNum);
     const content = await page.getTextContent();
 
-    // Collect items with their spatial coordinates
     const items = content.items
       .filter(it => it.str && it.str.trim())
       .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }));
 
     const rows = groupByY(items, 4);
 
-    // ── Locate the column-header row ──────────────────────────────────────
-    // It is the row that contains both "SampleName" and "Concentration".
     let headerIdx = -1;
-    const colX = {};  // column name → x position
+    const colX = {};
 
     for (let i = 0; i < rows.length; i++) {
       const joined = rows[i].items.map(it => it.str).join(' ');
@@ -367,23 +977,18 @@ async function extractFromPDF(file) {
 
     if (headerIdx === -1 || !colX.SampleName || !colX.Concentration) continue;
 
-    // ── Parse data rows ───────────────────────────────────────────────────
     for (let i = headerIdx + 1; i < rows.length; i++) {
       const row = rows[i];
       const joined = row.items.map(it => it.str).join(' ');
 
-      // Footer sentinel — stop processing this page
       if (joined.includes('Report Method') || joined.includes('Printed')) break;
       if (!joined.trim()) continue;
 
-      // Identify the SampleName item: starts with 8-digit date (YYYYMMDD)
       const snItem = row.items.find(it => /^\d{8}/.test(it.str.trim()));
       if (!snItem) continue;
 
-      // Discard items to the left of the SampleName (row-number column)
       const dataItems = row.items.filter(it => it.x >= snItem.x - 6);
 
-      // Assign each item to its column by nearest header x position
       const cell = {};
       for (const it of dataItems) {
         const col = nearestCol(it.x, colX);
@@ -394,12 +999,7 @@ async function extractFromPDF(file) {
       const parsed = parseSampleName(sampleName);
       if (!parsed) continue;
 
-      // Clean concentration: remove internal spaces (e.g. "8. 662" → "8.662")
       const rawConc = (cell.Concentration || '').replace(/\s+/g, '');
-
-      // If column-based extraction returned nothing for Concentration,
-      // fall back: check if Amount cell contains two space-separated values
-      // (column-collapse artefact) and take the second (smaller) one.
       let concentration = 0.0;
       if (rawConc) {
         concentration = parseFloat(rawConc);
@@ -426,39 +1026,50 @@ async function extractFromPDF(file) {
   return records;
 }
 
-// ── Sorting ────────────────────────────────────────────────────────────────
+// ── Sort ──────────────────────────────────────────────────────────────────────
 function sortRecords(records) {
   return [...records].sort((a, b) => {
     if (a.clona   < b.clona)   return -1;
     if (a.clona   > b.clona)   return  1;
     if (a.replica !== b.replica) return a.replica - b.replica;
-    if (a.tiempo  !== b.tiempo)  return a.tiempo  - b.tiempo;
-    return 0;
+    return a.tiempo - b.tiempo;
   });
 }
 
-// ── CSV generation ─────────────────────────────────────────────────────────
+// ── CSV ───────────────────────────────────────────────────────────────────────
 function generateCSV(records) {
   const lines = ['Clona,Replica,Tiempo,Concentration,Original_SampleName'];
-  for (const r of records) {
-    const conc = r.concentration.toFixed(1);
-    // Quote originalName in case it contains commas
-    lines.push(`${r.clona},${r.replica},${r.tiempo},${conc},"${r.originalName.replace(/"/g, '""')}"`);
-  }
+  for (const r of records)
+    lines.push(`${r.clona},${r.replica},${r.tiempo},${r.concentration.toFixed(1)},"${r.originalName.replace(/"/g, '""')}"`);
   return lines.join('\n');
 }
 
-// ── Results rendering ──────────────────────────────────────────────────────
+// ── Render results ────────────────────────────────────────────────────────────
 function renderResults(records) {
   const clonas  = [...new Set(records.map(r => r.clona))].sort();
   const tiempos = [...new Set(records.map(r => r.tiempo))].sort((a, b) => a - b);
   const withConc = records.filter(r => r.concentration > 0);
 
   summaryEl.innerHTML = `
-    <div class="stat"><div class="val">${records.length}</div><div class="lbl">Muestras totales</div></div>
-    <div class="stat"><div class="val">${clonas.length}</div><div class="lbl">Clonas — ${clonas.join(', ')}</div></div>
-    <div class="stat"><div class="val">${tiempos.length}</div><div class="lbl">Tiempos — T${tiempos.join(', T')}</div></div>
-    <div class="stat"><div class="val">${withConc.length}</div><div class="lbl">Con concentración &gt; 0</div></div>
+    <div class="info-stat-card">
+      <div class="info-stat-value">${records.length}</div>
+      <div class="info-stat-label">Muestras totales</div>
+    </div>
+    <div class="info-stat-card">
+      <div class="info-stat-value">${clonas.length}</div>
+      <div class="info-stat-label">Clonas</div>
+      <div class="info-stat-detail">${clonas.join(', ')}</div>
+    </div>
+    <div class="info-stat-card">
+      <div class="info-stat-value">${tiempos.length}</div>
+      <div class="info-stat-label">Tiempos</div>
+      <div class="info-stat-detail">T${tiempos.join(', T')}</div>
+    </div>
+    <div class="info-stat-card">
+      <div class="info-stat-value">${withConc.length}</div>
+      <div class="info-stat-label">Con concentración</div>
+      <div class="info-stat-detail">${records.length - withConc.length} registradas como 0.0</div>
+    </div>
   `;
 
   resultCount.textContent = records.length;
@@ -471,11 +1082,11 @@ function renderResults(records) {
     const isZero = r.concentration === 0;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${r.clona}</strong></td>
+      <td class="td-clona">${r.clona}</td>
       <td>${r.replica}</td>
-      <td>T${r.tiempo}${r.suffix ? ' <span style="color:#718096;font-size:0.75rem">(+${r.suffix})</span>' : ''}</td>
-      <td class="${isZero ? 'zero' : ''}">${isZero ? '0.0 <span style="font-size:0.75rem">(vacío)</span>' : r.concentration.toFixed(1)}</td>
-      <td class="mono">${r.originalName}</td>
+      <td>T${r.tiempo}${r.suffix ? `&thinsp;<span style="color:var(--md-text-secondary);font-size:0.85em">(+${r.suffix})</span>` : ''}</td>
+      <td class="${isZero ? 'td-zero' : ''}">${isZero ? '0.0 (vacío)' : r.concentration.toFixed(1)}</td>
+      <td class="td-mono">${r.originalName}</td>
     `;
     resultBody.appendChild(tr);
   }
@@ -490,15 +1101,15 @@ function renderResults(records) {
   resultsSection.style.display = 'block';
 }
 
-// ── Process button ─────────────────────────────────────────────────────────
+// ── Process ───────────────────────────────────────────────────────────────────
 btnProcess.addEventListener('click', async () => {
   btnProcess.disabled = true;
-  btnDownload.style.display = 'none';
   processedRecords = [];
   logEl.innerHTML = '';
+  logCard.style.display = '';
   resultsSection.style.display = 'none';
 
-  log(`Iniciando procesamiento de ${selectedFiles.length} archivo(s)…`, 'info');
+  log(`Procesando ${selectedFiles.length} archivo${selectedFiles.length > 1 ? 's' : ''}…`, 'info');
 
   for (const file of selectedFiles) {
     log(`→ ${file.name}`, 'info');
@@ -507,7 +1118,7 @@ btnProcess.addEventListener('click', async () => {
       processedRecords.push(...recs);
       setChipState(file.name, 'done');
       const zeros = recs.filter(r => r.concentration === 0).length;
-      log(`   ✓ ${recs.length} muestras extraídas${zeros ? ` (${zeros} sin concentración → 0.0)` : ''}`, 'ok');
+      log(`   ✓ ${recs.length} muestras extraídas${zeros ? ` · ${zeros} sin concentración → 0.0` : ''}`, 'ok');
     } catch (err) {
       setChipState(file.name, 'error');
       log(`   ✗ Error: ${err.message}`, 'err');
@@ -525,14 +1136,13 @@ btnProcess.addEventListener('click', async () => {
   processedRecords = sorted;
 
   log(``, 'info');
-  log(`✓ Total: ${sorted.length} muestras de ${selectedFiles.length} archivo(s). Listo para descargar.`, 'ok');
+  log(`✓ Total: ${sorted.length} muestras · listo para descargar.`, 'ok');
 
   renderResults(sorted);
-  btnDownload.style.display = '';
   btnProcess.disabled = false;
 });
 
-// ── Download CSV ───────────────────────────────────────────────────────────
+// ── Download ──────────────────────────────────────────────────────────────────
 btnDownload.addEventListener('click', () => {
   if (!processedRecords.length) return;
   const csv  = generateCSV(processedRecords);
