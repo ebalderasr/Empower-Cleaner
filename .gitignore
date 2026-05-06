@@ -1,0 +1,17 @@
+# Demo / datos locales — no subir PDFs de prueba
+Demo_data/
+
+# Claude Code (configuración local)
+.claude/
+
+# Sistemas operativos
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
