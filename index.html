@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmpowerQuant — Extractor HPLC</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1f2e;
+      border-bottom: 1px solid #2d3748;
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; color: #63b3ed; letter-spacing: -0.5px; }
+    header p  { font-size: 0.82rem; color: #718096; margin-top: 0.1rem; }
+
+    main { max-width: 920px; margin: 2rem auto; padding: 0 1.5rem 3rem; }
+
+    /* ── Drop zone ── */
+    .drop-zone {
+      border: 2px dashed #4a5568;
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #1a1f2e;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #63b3ed;
+      background: #1b2540;
+    }
+    .drop-zone svg { width: 44px; height: 44px; color: #4a5568; margin-bottom: 0.75rem; }
+    .drop-zone strong { display: block; color: #a0aec0; font-size: 1.05rem; }
+    .drop-zone p { color: #718096; font-size: 0.82rem; margin-top: 0.4rem; }
+    #file-input { display: none; }
+
+    /* ── File chips ── */
+    .file-list { margin-top: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .file-chip {
+      background: #2d3748; border-radius: 20px; padding: 0.3rem 0.85rem;
+      font-size: 0.78rem; color: #a0aec0; display: flex; align-items: center; gap: 0.35rem;
+      transition: background 0.2s, color 0.2s;
+    }
+    .file-chip::before { content: '○'; font-size: 0.7rem; }
+    .file-chip.done  { background: #1a3a2a; color: #68d391; }
+    .file-chip.done::before  { content: '●'; }
+    .file-chip.error { background: #3a1a1a; color: #fc8181; }
+    .file-chip.error::before { content: '✕'; }
+
+    /* ── Actions ── */
+    .actions { margin-top: 1.25rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+    button {
+      padding: 0.6rem 1.4rem; border: none; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s, background 0.15s;
+    }
+    #btn-process  { background: #4299e1; color: #fff; }
+    #btn-process:hover:not(:disabled) { background: #3182ce; }
+    #btn-process:disabled { opacity: 0.4; cursor: not-allowed; }
+    #btn-download { background: #48bb78; color: #fff; }
+    #btn-download:hover { background: #38a169; }
+    #btn-clear    { background: #2d3748; color: #a0aec0; }
+    #btn-clear:hover { background: #4a5568; }
+
+    /* ── Log ── */
+    .log {
+      margin-top: 1.25rem; background: #13161f; border: 1px solid #2d3748;
+      border-radius: 8px; padding: 0.85rem 1rem;
+      font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 0.78rem;
+      color: #a0aec0; max-height: 180px; overflow-y: auto;
+    }
+    .log .line { line-height: 1.6; }
+    .log .ok   { color: #68d391; }
+    .log .err  { color: #fc8181; }
+    .log .info { color: #63b3ed; }
+    .log .warn { color: #f6e05e; }
+
+    /* ── Summary cards ── */
+    .summary { margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .stat {
+      background: #1a1f2e; border: 1px solid #2d3748; border-radius: 10px;
+      padding: 0.75rem 1.1rem; min-width: 130px;
+    }
+    .stat .val { font-size: 1.6rem; font-weight: 700; color: #63b3ed; }
+    .stat .lbl { font-size: 0.72rem; color: #718096; margin-top: 0.15rem; }
+
+    /* ── Results table ── */
+    .results { margin-top: 1.25rem; }
+    .results h2 { font-size: 0.95rem; color: #a0aec0; margin-bottom: 0.6rem; }
+
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid #2d3748; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+    th {
+      background: #2d3748; color: #a0aec0; padding: 0.55rem 0.9rem;
+      text-align: left; font-weight: 600; white-space: nowrap;
+    }
+    td {
+      background: #1a1f2e; color: #e2e8f0;
+      padding: 0.45rem 0.9rem; border-top: 1px solid #1e2433;
+    }
+    tr:hover td { background: #1b2540; }
+    .zero { color: #4a5568; }
+    .mono { font-family: monospace; font-size: 0.78rem; color: #718096; }
+
+    .truncate-note {
+      text-align: center; padding: 0.6rem; color: #718096; font-size: 0.8rem;
+      background: #1a1f2e; border-top: 1px solid #2d3748;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#63b3ed" stroke-width="2">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </svg>
+  <div>
+    <h1>EmpowerQuant</h1>
+    <p>Extractor de concentraciones HPLC · Waters Empower → CSV</p>
+  </div>
+</header>
+
+<main>
+  <div class="drop-zone" id="drop-zone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round"
+        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+    </svg>
+    <strong>Arrastra los reportes PDF aquí</strong>
+    <p>o haz clic para seleccionar archivos</p>
+    <p style="margin-top:0.3rem">Reportes Waters Empower (.pdf) — múltiples archivos aceptados</p>
+    <input type="file" id="file-input" multiple accept=".pdf">
+  </div>
+
+  <div class="file-list" id="file-list"></div>
+
+  <div class="actions">
+    <button id="btn-process" disabled>Procesar PDFs</button>
+    <button id="btn-download" style="display:none">⬇ Descargar CSV</button>
+    <button id="btn-clear">Limpiar</button>
+  </div>
+
+  <div class="log" id="log" style="display:none"></div>
+
+  <div id="results-section" style="display:none">
+    <div class="summary" id="summary"></div>
+    <div class="results">
+      <h2>Vista previa — <span id="result-count">0</span> muestras (ordenadas por Clona · Réplica · Tiempo)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Clona</th>
+              <th>Réplica</th>
+              <th>Tiempo</th>
+              <th>Concentration (μg/mL)</th>
+              <th>Original SampleName</th>
+            </tr>
+          </thead>
+          <tbody id="result-body"></tbody>
+        </table>
+        <div class="truncate-note" id="truncate-note" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+'use strict';
+
+// ── PDF.js worker ────────────────────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── State ────────────────────────────────────────────────────────────────────
+let selectedFiles = [];
+let processedRecords = [];
+
+// ── DOM refs ─────────────────────────────────────────────────────────────────
+const dropZone      = document.getElementById('drop-zone');
+const fileInput     = document.getElementById('file-input');
+const fileListEl    = document.getElementById('file-list');
+const btnProcess    = document.getElementById('btn-process');
+const btnDownload   = document.getElementById('btn-download');
+const btnClear      = document.getElementById('btn-clear');
+const logEl         = document.getElementById('log');
+const resultsSection= document.getElementById('results-section');
+const summaryEl     = document.getElementById('summary');
+const resultBody    = document.getElementById('result-body');
+const resultCount   = document.getElementById('result-count');
+const truncateNote  = document.getElementById('truncate-note');
+
+// ── Logging ───────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  logEl.style.display = 'block';
+  const div = document.createElement('div');
+  div.className = `line ${type}`;
+  div.textContent = msg;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ── File management ───────────────────────────────────────────────────────────
+function addFiles(files) {
+  let added = 0;
+  for (const f of files) {
+    if (!f.name.toLowerCase().endsWith('.pdf')) continue;
+    if (selectedFiles.some(e => e.name === f.name && e.size === f.size)) continue;
+    selectedFiles.push(f);
+    added++;
+  }
+  renderFileChips();
+  return added;
+}
+
+function renderFileChips() {
+  fileListEl.innerHTML = '';
+  for (const f of selectedFiles) {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    chip.dataset.fname = f.name;
+    chip.textContent = f.name;
+    fileListEl.appendChild(chip);
+  }
+  btnProcess.disabled = selectedFiles.length === 0;
+}
+
+function setChipState(fname, state) {
+  const chip = fileListEl.querySelector(`[data-fname="${CSS.escape(fname)}"]`);
+  if (chip) chip.className = `file-chip ${state}`;
+}
+
+// ── Drag & drop ───────────────────────────────────────────────────────────────
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { addFiles(e.target.files); fileInput.value = ''; });
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  addFiles(e.dataTransfer.files);
+});
+
+// ── Clear ─────────────────────────────────────────────────────────────────────
+btnClear.addEventListener('click', () => {
+  selectedFiles = [];
+  processedRecords = [];
+  fileListEl.innerHTML = '';
+  logEl.innerHTML = '';
+  logEl.style.display = 'none';
+  resultsSection.style.display = 'none';
+  btnDownload.style.display = 'none';
+  btnProcess.disabled = true;
+  fileInput.value = '';
+});
+
+// ── PDF parsing ───────────────────────────────────────────────────────────────
+
+/**
+ * Groups text items by Y coordinate (±tol units).
+ * Returns rows sorted top→bottom, items sorted left→right within each row.
+ */
+function groupByY(items, tol = 4) {
+  const rows = [];
+  for (const item of items) {
+    let matched = false;
+    for (const row of rows) {
+      if (Math.abs(row.y - item.y) <= tol) {
+        row.items.push(item);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) rows.push({ y: item.y, items: [item] });
+  }
+  // PDF Y=0 is at bottom; descending = top-to-bottom reading order
+  rows.sort((a, b) => b.y - a.y);
+  for (const row of rows) row.items.sort((a, b) => a.x - b.x);
+  return rows;
+}
+
+/**
+ * Returns the column name (key of colX) whose X is closest to x.
+ */
+function nearestCol(x, colX) {
+  let best = null, bestDist = Infinity;
+  for (const [name, cx] of Object.entries(colX)) {
+    const d = Math.abs(x - cx);
+    if (d < bestDist) { bestDist = d; best = name; }
+  }
+  return best;
+}
+
+/**
+ * Parses a Waters Empower SampleName string.
+ * Expected pattern: YYYYMMDD[_ ][Clona][_ ][Replica][_ ]T[space?][N][...suffix]
+ * Returns { clona, replica, tiempo, suffix } or null.
+ */
+function parseSampleName(name) {
+  // Allow underscore or space as separator; T may have space before digit
+  const m = name.match(/\d{8}[_\s]([A-Za-z]+)[_\s](\d+)[_\s]T\s*(\d+)(.*)/);
+  if (!m) return null;
+
+  // Keep any suffix after T[N] for re-injection tracking (e.g. "_1")
+  const rawSuffix = m[4].trim().replace(/^[_\s]+/, '').trim();
+
+  return {
+    clona  : m[1].toUpperCase(),
+    replica: parseInt(m[2], 10),
+    tiempo : parseInt(m[3], 10),
+    suffix : rawSuffix || '',
+  };
+}
+
+/**
+ * Extracts sample records from a single PDF file using PDF.js.
+ * Uses dynamic column-header positions so layout variations don't break parsing.
+ */
+async function extractFromPDF(file) {
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const records = [];
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent();
+
+    // Collect items with their spatial coordinates
+    const items = content.items
+      .filter(it => it.str && it.str.trim())
+      .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }));
+
+    const rows = groupByY(items, 4);
+
+    // ── Locate the column-header row ──────────────────────────────────────
+    // It is the row that contains both "SampleName" and "Concentration".
+    let headerIdx = -1;
+    const colX = {};  // column name → x position
+
+    for (let i = 0; i < rows.length; i++) {
+      const joined = rows[i].items.map(it => it.str).join(' ');
+      if (joined.includes('SampleName') && joined.includes('Concentration')) {
+        headerIdx = i;
+        for (const it of rows[i].items) {
+          const s = it.str.trim();
+          if (['SampleName','Name','RT','Area','Amount','Concentration','Units'].includes(s)) {
+            colX[s] = it.x;
+          }
+        }
+        break;
+      }
+    }
+
+    if (headerIdx === -1 || !colX.SampleName || !colX.Concentration) continue;
+
+    // ── Parse data rows ───────────────────────────────────────────────────
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      const joined = row.items.map(it => it.str).join(' ');
+
+      // Footer sentinel — stop processing this page
+      if (joined.includes('Report Method') || joined.includes('Printed')) break;
+      if (!joined.trim()) continue;
+
+      // Identify the SampleName item: starts with 8-digit date (YYYYMMDD)
+      const snItem = row.items.find(it => /^\d{8}/.test(it.str.trim()));
+      if (!snItem) continue;
+
+      // Discard items to the left of the SampleName (row-number column)
+      const dataItems = row.items.filter(it => it.x >= snItem.x - 6);
+
+      // Assign each item to its column by nearest header x position
+      const cell = {};
+      for (const it of dataItems) {
+        const col = nearestCol(it.x, colX);
+        if (col) cell[col] = (cell[col] || '') + it.str;
+      }
+
+      const sampleName = (cell.SampleName || '').trim();
+      const parsed = parseSampleName(sampleName);
+      if (!parsed) continue;
+
+      // Clean concentration: remove internal spaces (e.g. "8. 662" → "8.662")
+      const rawConc = (cell.Concentration || '').replace(/\s+/g, '');
+
+      // If column-based extraction returned nothing for Concentration,
+      // fall back: check if Amount cell contains two space-separated values
+      // (column-collapse artefact) and take the second (smaller) one.
+      let concentration = 0.0;
+      if (rawConc) {
+        concentration = parseFloat(rawConc);
+      } else {
+        const amtParts = (cell.Amount || '').trim().split(/\s+/);
+        if (amtParts.length >= 2) {
+          const candidate = parseFloat(amtParts[amtParts.length - 1]);
+          if (!isNaN(candidate)) concentration = candidate;
+        }
+      }
+      if (isNaN(concentration)) concentration = 0.0;
+
+      records.push({
+        clona       : parsed.clona,
+        replica     : parsed.replica,
+        tiempo      : parsed.tiempo,
+        suffix      : parsed.suffix,
+        concentration,
+        originalName: sampleName,
+      });
+    }
+  }
+
+  return records;
+}
+
+// ── Sorting ────────────────────────────────────────────────────────────────
+function sortRecords(records) {
+  return [...records].sort((a, b) => {
+    if (a.clona   < b.clona)   return -1;
+    if (a.clona   > b.clona)   return  1;
+    if (a.replica !== b.replica) return a.replica - b.replica;
+    if (a.tiempo  !== b.tiempo)  return a.tiempo  - b.tiempo;
+    return 0;
+  });
+}
+
+// ── CSV generation ─────────────────────────────────────────────────────────
+function generateCSV(records) {
+  const lines = ['Clona,Replica,Tiempo,Concentration,Original_SampleName'];
+  for (const r of records) {
+    const conc = r.concentration.toFixed(1);
+    // Quote originalName in case it contains commas
+    lines.push(`${r.clona},${r.replica},${r.tiempo},${conc},"${r.originalName.replace(/"/g, '""')}"`);
+  }
+  return lines.join('\n');
+}
+
+// ── Results rendering ──────────────────────────────────────────────────────
+function renderResults(records) {
+  const clonas  = [...new Set(records.map(r => r.clona))].sort();
+  const tiempos = [...new Set(records.map(r => r.tiempo))].sort((a, b) => a - b);
+  const withConc = records.filter(r => r.concentration > 0);
+
+  summaryEl.innerHTML = `
+    <div class="stat"><div class="val">${records.length}</div><div class="lbl">Muestras totales</div></div>
+    <div class="stat"><div class="val">${clonas.length}</div><div class="lbl">Clonas — ${clonas.join(', ')}</div></div>
+    <div class="stat"><div class="val">${tiempos.length}</div><div class="lbl">Tiempos — T${tiempos.join(', T')}</div></div>
+    <div class="stat"><div class="val">${withConc.length}</div><div class="lbl">Con concentración &gt; 0</div></div>
+  `;
+
+  resultCount.textContent = records.length;
+  resultBody.innerHTML = '';
+
+  const MAX_ROWS = 300;
+  const display = records.slice(0, MAX_ROWS);
+
+  for (const r of display) {
+    const isZero = r.concentration === 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${r.clona}</strong></td>
+      <td>${r.replica}</td>
+      <td>T${r.tiempo}${r.suffix ? ' <span style="color:#718096;font-size:0.75rem">(+${r.suffix})</span>' : ''}</td>
+      <td class="${isZero ? 'zero' : ''}">${isZero ? '0.0 <span style="font-size:0.75rem">(vacío)</span>' : r.concentration.toFixed(1)}</td>
+      <td class="mono">${r.originalName}</td>
+    `;
+    resultBody.appendChild(tr);
+  }
+
+  if (records.length > MAX_ROWS) {
+    truncateNote.style.display = 'block';
+    truncateNote.textContent = `Mostrando ${MAX_ROWS} de ${records.length} filas. El CSV descargable contiene todas.`;
+  } else {
+    truncateNote.style.display = 'none';
+  }
+
+  resultsSection.style.display = 'block';
+}
+
+// ── Process button ─────────────────────────────────────────────────────────
+btnProcess.addEventListener('click', async () => {
+  btnProcess.disabled = true;
+  btnDownload.style.display = 'none';
+  processedRecords = [];
+  logEl.innerHTML = '';
+  resultsSection.style.display = 'none';
+
+  log(`Iniciando procesamiento de ${selectedFiles.length} archivo(s)…`, 'info');
+
+  for (const file of selectedFiles) {
+    log(`→ ${file.name}`, 'info');
+    try {
+      const recs = await extractFromPDF(file);
+      processedRecords.push(...recs);
+      setChipState(file.name, 'done');
+      const zeros = recs.filter(r => r.concentration === 0).length;
+      log(`   ✓ ${recs.length} muestras extraídas${zeros ? ` (${zeros} sin concentración → 0.0)` : ''}`, 'ok');
+    } catch (err) {
+      setChipState(file.name, 'error');
+      log(`   ✗ Error: ${err.message}`, 'err');
+      console.error(err);
+    }
+  }
+
+  if (processedRecords.length === 0) {
+    log('No se encontraron muestras. Verifica que los PDFs sean reportes Waters Empower.', 'err');
+    btnProcess.disabled = false;
+    return;
+  }
+
+  const sorted = sortRecords(processedRecords);
+  processedRecords = sorted;
+
+  log(``, 'info');
+  log(`✓ Total: ${sorted.length} muestras de ${selectedFiles.length} archivo(s). Listo para descargar.`, 'ok');
+
+  renderResults(sorted);
+  btnDownload.style.display = '';
+  btnProcess.disabled = false;
+});
+
+// ── Download CSV ───────────────────────────────────────────────────────────
+btnDownload.addEventListener('click', () => {
+  if (!processedRecords.length) return;
+  const csv  = generateCSV(processedRecords);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `empower_concentraciones_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
