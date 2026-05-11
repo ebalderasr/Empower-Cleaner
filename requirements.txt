@@ -1,0 +1,2 @@
+# This project is a static browser application.
+# No Python packages are required to run it locally.
