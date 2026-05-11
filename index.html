@@ -786,10 +786,13 @@
         </svg>
         Descargar CSV
       </button>
+      <button id="btn-copy-excel" class="btn-md-outlined">
+        Copiar para Excel
+      </button>
       <button id="btn-clear" class="btn-md-outlined">
         Nueva sesión
       </button>
-      <span class="md-action-hint">El CSV contiene todas las muestras ordenadas · concentraciones vacías → 0.0</span>
+      <span class="md-action-hint">Puedes descargar CSV o copiar la tabla para pegarla directo en Excel · concentraciones vacías → 0.0</span>
     </div>
 
   </div><!-- /results-section -->
@@ -832,6 +835,7 @@ const fileInput     = document.getElementById('file-input');
 const fileListEl    = document.getElementById('file-list');
 const btnProcess    = document.getElementById('btn-process');
 const btnDownload   = document.getElementById('btn-download');
+const btnCopyExcel  = document.getElementById('btn-copy-excel');
 const btnClear      = document.getElementById('btn-clear');
 const logCard       = document.getElementById('log-card');
 const logEl         = document.getElementById('log');
@@ -1058,6 +1062,40 @@ function generateCSV(records) {
   return lines.join('\n');
 }
 
+function generateExcelText(records) {
+  const lines = ['Clona\tReplica\tTiempo\tConcentration\tOriginal_SampleName'];
+  for (const r of records) {
+    lines.push([
+      r.clona,
+      r.replica,
+      r.tiempo,
+      r.concentration.toFixed(1),
+      r.originalName.replace(/\t/g, ' ').replace(/\r?\n/g, ' '),
+    ].join('\t'));
+  }
+  return lines.join('\n');
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-9999px';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+
+  const ok = document.execCommand('copy');
+  document.body.removeChild(ta);
+  if (!ok) throw new Error('No se pudo copiar al portapapeles.');
+}
+
 // ── Render results ────────────────────────────────────────────────────────────
 function renderResults(records) {
   const clonas  = [...new Set(records.map(r => r.clona))].sort();
@@ -1169,6 +1207,21 @@ btnDownload.addEventListener('click', () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+});
+
+btnCopyExcel.addEventListener('click', async () => {
+  if (!processedRecords.length) return;
+  const originalLabel = btnCopyExcel.textContent;
+  try {
+    await copyTextToClipboard(generateExcelText(processedRecords));
+    btnCopyExcel.textContent = 'Copiado';
+    log(`✓ Datos copiados al portapapeles en formato listo para Excel.`, 'ok');
+  } catch (err) {
+    btnCopyExcel.textContent = 'Error al copiar';
+    log(`✗ ${err.message}`, 'err');
+  } finally {
+    window.setTimeout(() => { btnCopyExcel.textContent = originalLabel; }, 1600);
+  }
 });
 </script>
 </body>
