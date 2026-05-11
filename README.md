@@ -46,11 +46,15 @@ Three steps. No scripts. No manual table cleanup.
 
 Drag one or more report PDFs onto the drop zone or click to browse. Only `.pdf` files are accepted.
 
+<img src="Fig/Fig_1.png" alt="Step 1 – Upload Waters Empower PDFs" width="700"/>
+
 <br>
 
 **Step 2 — Process the reports**
 
 Click **Procesar PDFs**. The app scans each PDF page, finds the table containing `SampleName` and `Concentration`, and extracts matching rows.
+
+<img src="Fig/Fig_2.png" alt="Step 2 – Process the reports" width="700"/>
 
 <br>
 
@@ -194,8 +198,10 @@ This tool is best suited for report pages where:
 
 ```text
 Empower-Cleaner/
+├── Fig/                ← screenshot assets for this README
 ├── index.html          ← full app: UI, styles, PDF parsing, CSV export
 ├── README.md           ← project documentation
+├── requirements.txt    ← explicit note that no Python packages are required
 └── LICENSE             ← MIT license
 ```
 
